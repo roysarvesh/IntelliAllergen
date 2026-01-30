@@ -1,5 +1,15 @@
 import streamlit as st
-import requests
+import pandas as pd
+import joblib
+import os
+
+# Load model and encoder
+current_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(current_dir, "Allergen_detection.pkl")
+encoder_path = os.path.join(current_dir, "leave_one_out_encoder.pkl")
+
+loaded_model = joblib.load(model_path)
+loaded_encoder = joblib.load(encoder_path)
 
 # App title and description:
 st.markdown("""
@@ -8,15 +18,15 @@ st.markdown("""
     📋 Enter the Product Details & ensure you're Safe </p> 
 """, unsafe_allow_html=True)
 
-# Sidebar for additional information:
-st.sidebar.title("ℹ️ About SafeBite")
+# Sidebar info
+st.sidebar.title("ℹ️ About IntelliAllergen")
 st.sidebar.markdown("""
-- **Project Name**: IntelliAllergen  
-- **Purpose**: Predict allergen content in food products  
-- **Technology**: AI-powered with advanced encoding and modeling  
+- **Purpose**: Predict allergen probability  
+- **Built with**: Streamlit + ML  
+- **Created by**: Sarvesh Kumar Roy  
 """)
 
-# Custom CSS for styling input labels, button, and alignment:
+# Custom CSS
 st.markdown("""
 <style>
     .stButton>button {
@@ -28,139 +38,90 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Form for user input:
+# Form for user input
 with st.form(key="product_form"):
-    error_flag = False  # Flag to track validation errors
-
-    # Split the inputs into two columns:
+    error_flag = False
     col1, col2 = st.columns(2)
 
     with col1:
-        food_product = st.text_input(
-            "🥘 Food Product",
-            placeholder="Enter the food product name",
-            help="Enter a valid food product name",
-            key="food_product"
-        )
+        food_product = st.text_input("🥘 Food Product")
         if food_product.isnumeric():
-            st.error("Food Product should not contain numbers. Please correct it.")
+            st.error("Food Product should not contain numbers.")
             error_flag = True
 
-        main_ingredient = st.text_input(
-            "🌾 Main Ingredient",
-            placeholder="Enter the main ingredient",
-            help="Enter the main component of the product",
-            key="main_ingredient"
-        )
+        main_ingredient = st.text_input("🌾 Main Ingredient")
         if main_ingredient.isnumeric():
-            st.error("Main Ingredient should not contain numbers. Please correct it.")
+            st.error("Main Ingredient should not contain numbers.")
             error_flag = True
 
-        sweetener = st.text_input(
-            "🍯 Sweetener",
-            placeholder="Enter the sweetener used",
-            help="Provide the name of the sweetener",
-            key="sweetener"
-        )
+        sweetener = st.text_input("🍯 Sweetener")
         if sweetener.isnumeric():
-            st.error("Sweetener should not contain numbers. Please correct it.")
+            st.error("Sweetener should not contain numbers.")
             error_flag = True
 
-        fat_oil = st.text_input(
-            "🧈 Fat/Oil",
-            placeholder="Enter the type of fat or oil used",
-            help="Specify the fat or oil used",
-            key="fat_oil"
-        )
+        fat_oil = st.text_input("🧈 Fat/Oil")
         if fat_oil.isnumeric():
-            st.error("Fat/Oil should not contain numbers. Please correct it.")
+            st.error("Fat/Oil should not contain numbers.")
             error_flag = True
 
     with col2:
-        seasoning = st.text_input(
-            "🧂 Seasoning",
-            placeholder="Enter the seasoning used",
-            help="Mention the type of seasoning",
-            key="seasoning"
-        )
+        seasoning = st.text_input("🧂 Seasoning")
         if seasoning.isnumeric():
-            st.error("Seasoning should not contain numbers. Please correct it.")
+            st.error("Seasoning should not contain numbers.")
             error_flag = True
 
-        allergens = st.text_input(
-            "⚠️ Allergens",
-            placeholder="List potential allergens (if any)",
-            help="List potential allergens E.g., peanuts, gluten, etc.",
-            key="allergens"
-        )
+        allergens = st.text_input("⚠️ Allergens")
         if allergens.isnumeric():
-            st.error("Allergens should not contain numbers. Please correct it.")
+            st.error("Allergens should not contain numbers.")
             error_flag = True
 
-        # Numeric inputs for Price and Customer Rating:
-        price = st.number_input(
-            "💲 Price ($)",
-            min_value=0.0,
-            step=0.1,
-            format="%.2f",
-            help="Enter the price in dollars"
-        )
+        price = st.number_input("💲 Price ($)", min_value=0.0, step=0.1)
+        customer_rating = st.number_input("⭐ Customer Rating (Out of 5)", min_value=0.0, max_value=5.0, step=0.1)
 
-        customer_rating = st.number_input(
-            "⭐ Customer Rating (Out of 5)",
-            min_value=0.0,
-            max_value=5.0,
-            step=0.1,
-            help="Provide a rating between 0 and 5"
-        )
-
-    # Predict Allergens button:
     col1, col2, col3 = st.columns([1, 1.3, 1])
 
     with col2:
-        submit_button = st.form_submit_button(label="🔍 Predict Allergens 🚀")
+        submit_button = st.form_submit_button("🔍 Predict Allergens 🚀")
 
-# On form submission:
+# On submit
 if submit_button:
     if error_flag:
-        st.warning("⚠️ Please resolve all errors before submission!")
+        st.warning("⚠️ Please fix validation errors!")
     elif not all([food_product, main_ingredient, sweetener, fat_oil, seasoning, allergens]):
-        st.warning("⚠️ Please fill in all fields! If a field doesn't apply, type 'None'.")
+        st.warning("⚠️ Fill all fields! If something doesn't apply, write 'None'.")
     else:
-        # User input in a JSON format:
-        user_input = {
-            "Food Product": food_product,
-            "Main Ingredient": main_ingredient,
-            "Sweetener": sweetener,
-            "Fat/Oil": fat_oil,
-            "Seasoning": seasoning,
-            "Allergens": allergens,
-            "Price ($)": price,
-            "Customer rating (Out of 5)": customer_rating
-        }
+        input_df = pd.DataFrame({
+            "Food Product": [food_product],
+            "Main Ingredient": [main_ingredient],
+            "Sweetener": [sweetener],
+            "Fat/Oil": [fat_oil],
+            "Seasoning": [seasoning],
+            "Allergens": [allergens],
+            "Price ($)": [price],
+            "Customer rating": [customer_rating]
+        })
 
-        # Send the data to the Flask API for prediction:
-        api_url = 'http://127.0.0.1:5000/predict'
+        # Encode categorical data
+        categorical_cols = input_df.select_dtypes(include="object").columns
+        encoded = loaded_encoder.transform(input_df[categorical_cols])
+        final_input = pd.concat([input_df.drop(categorical_cols, axis=1), encoded], axis=1)
 
-        try:
-            response = requests.post(api_url, json=user_input)
-            prediction = response.json()["result"]
+        # Prediction
+        prediction = loaded_model.predict(final_input)[0]
 
-            # Display the result based on prediction:
-            if "contains allergens" in prediction:
-                st.success(f"✅ {prediction}. Please proceed with caution! 🚨")
-            else:
-                st.success(f"❌ {prediction}. It's safe to consume! 🎉")
-        except Exception as e:
-            st.error(f"Error during prediction: {e}")
+        result = (
+            "❌ This product contains allergens. 🚨"
+            if prediction == 0
+            else "✅ This product does NOT contain allergens. 🎉"
+        )
 
-# Footer:
+        st.success(result)
+
+# Footer
 st.markdown("""
 <hr>
 <p style="text-align:center;">
-    Built with ❤️ using Streamlit. <br>
-    SafeBite® - Protecting you from hidden allergens! <br>
-    Made by: <b>Sarvesh Kumar Roy</b> <br>
-    &copy;2026. All rights reserved.
+    Built with ❤️ using Streamlit.<br>
+    IntelliAllergen® 2026 • Made by <b>Sarvesh Kumar Roy</b>
 </p>
 """, unsafe_allow_html=True)
