@@ -1,10 +1,11 @@
 pandas
 scikit-learn
 flask
-streamlit
 joblib
 numpy
 matplotlib
 seaborn
 category_encoders
 xgboost
+streamlit==1.31.0
+altair==5.2.0
