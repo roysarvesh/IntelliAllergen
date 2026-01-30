@@ -1,4 +1,4 @@
-📘 README — IntelliAllergen: AI-Powered Allergen Detection
+
 🚀 IntelliAllergen
 
 AI-powered allergen detection system for safer food choices.
